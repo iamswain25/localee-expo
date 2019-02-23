@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, Animated, Dimensions } from "react-native";
+import { StyleSheet, Text, View, Animated, TextInput } from "react-native";
 import { GestureHandler } from "expo";
 
 const TOP_SHOW_HEIGHT = 600;
@@ -18,18 +18,16 @@ const styles = StyleSheet.create({
 export default class BottomSearch extends React.Component {
   constructor(props) {
     super(props);
-    // this._translateX = new Animated.Value(0);
     this._translateY = new Animated.Value(0);
     this._lastOffset = { y: 0 };
     this._onGestureEvent = Animated.event([
       {
         nativeEvent: {
-          //   translationX: this._translateX,
           translationY: this._translateY
         }
       }
     ]);
-    // const {height} = Dimensions.get('window');
+    this.state = { text: "" };
   }
   _onHandlerStateChange = event => {
     if (event.nativeEvent.oldState === GestureHandler.State.ACTIVE) {
@@ -68,8 +66,12 @@ export default class BottomSearch extends React.Component {
             }
           ]}
         >
-          <Text>-----------</Text>
-          <Text>input box</Text>
+          <View style={{ borderBottom: "1px solid black", width: "50%" }} />
+          <TextInput
+            style={{ height: 40, borderColor: "gray", borderWidth: 1 }}
+            onChangeText={text => this.setState({ text })}
+            value={this.state.text}
+          />
         </Animated.View>
       </GestureHandler.PanGestureHandler>
     );
