@@ -82,7 +82,10 @@ export default class App extends React.Component {
           setTaggingModal={this._setTaggingModal}
         />
         {/* <BottomSearch /> */}
-        <Tagging modalVisible={this.state.modalVisible} />
+        <Tagging
+          modalVisible={this.state.modalVisible}
+          closeModal={e => this._setTaggingModal(false)}
+        />
       </View>
     );
   }
