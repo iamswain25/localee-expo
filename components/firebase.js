@@ -1,7 +1,7 @@
 import firebase from "firebase/app";
 import "firebase/firestore";
-import "firebase/storage";
-import "firebase/auth";
+// import "firebase/storage";
+// import "firebase/auth";
 const config = {
   apiKey: "AIzaSyBI7To_UdRP4vO2Im5OVIq32eQ1WSs7mTY",
   authDomain: "localee0.firebaseapp.com",
@@ -13,4 +13,9 @@ const config = {
 firebase.initializeApp(config);
 const firestore = firebase.firestore();
 const GeoPoint = firebase.firestore.GeoPoint;
-export { firestore, firebase, GeoPoint };
+let user = null;
+// firebase.auth().onAuthStateChanged(_user => {
+//   user = _user;
+// });
+// firebase.auth().signInAnonymously();
+export { firestore, firebase, GeoPoint, user };

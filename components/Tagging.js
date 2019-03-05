@@ -8,6 +8,7 @@ import {
   TouchableOpacity
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Constants } from "expo";
 import { firestore, GeoPoint } from "./firebase";
 const styles = StyleSheet.create({
   statusBar: {
@@ -35,6 +36,7 @@ export default class Tagging extends React.Component {
     }
   }
   _postTagging = async () => {
+    console.log("tagging");
     const content = this.state.text;
     const tags = content.match(/#(\w+)/g);
     const areas = this.props.address;
@@ -42,13 +44,15 @@ export default class Tagging extends React.Component {
       this.props.coords.latitude,
       this.props.coords.longitude
     );
-    await firestore.collection("topics").add({
+    firestore.collection("topics").add({
       content,
       tags,
       areas,
-      coords
+      coords,
+      createdBy: Constants.installationId
     });
     this.props.closeModal();
+    this.setState({ text: "" });
   };
   render() {
     if (this.props.locationPermission) {
