@@ -22,6 +22,9 @@
       "bundleIdentifier": "space.localee.test01"
     },
     "android": {
+      "config": {
+        "googleMaps": { "apiKey": "AIzaSyAtMTOSvTiNH3HGT7VSaaIRBY1e3Re7D3g" }
+      },
       "package": "space.localee.test01"
     }
   }
