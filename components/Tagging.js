@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Constants } from "expo";
-import { firestore, GeoPoint } from "./firebase";
+import { fs, GeoPoint } from "./firebase";
 const styles = StyleSheet.create({
   statusBar: {
     backgroundColor: "white",
@@ -44,7 +44,7 @@ export default class Tagging extends React.Component {
       this.props.coords.latitude,
       this.props.coords.longitude
     );
-    firestore.collection("topics").add({
+    fs.addTopic({
       content,
       tags,
       areas,

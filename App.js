@@ -1,4 +1,5 @@
 import React from "react";
+import { fs, GeoPoint } from "./components/firebase";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { MapView, Constants, Location, Permissions } from "expo";
 // import BottomSearch from "./components/BottomSearch";
@@ -25,23 +26,23 @@ export default class App extends React.Component {
         region: "California",
         street: "Amphitheatre Parkway"
       },
+      tags: [
+        {
+          tag: "#ok",
+          areas: {},
+          coordinates: new GeoPoint(37.78825, -122.4324),
+          topicCount: 1,
+          clickCount: 0,
+          searchCount: 0
+        }
+      ],
       coords: {}
     };
   }
   _onRegionChangeComplete = async region => {
-    let zoom = Math.round(Math.log(360 / region.longitudeDelta) / Math.LN2);
-    // const boundaries = await this.mapView.getMapBoundaries();
-    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-    let northeast = {
-        latitude: latitude + latitudeDelta / 2,
-        longitude: longitude + longitudeDelta / 2
-      },
-      southwest = {
-        latitude: latitude - latitudeDelta / 2,
-        longitude: longitude - longitudeDelta / 2
-      };
-
-    console.log(zoom, northeast, southwest);
+    const qs = await fs.getMapTags(region);
+    const tags = qs.docs.map(d => d.data());
+    this.setState({ tags });
   };
   _getLocationAsync = async () => {
     if (!this.state.locationPermission) {
@@ -50,7 +51,7 @@ export default class App extends React.Component {
         return alert("Permission to access location was denied");
       }
     }
-    const { latitude, longitude } = this._getAddressAsync();
+    const { latitude, longitude } = await this._getAddressAsync();
     const { latitudeDelta, longitudeDelta } = initialRegion;
     this.mapView.animateToRegion(
       { latitude, longitude, latitudeDelta, longitudeDelta },
@@ -101,15 +102,16 @@ export default class App extends React.Component {
           initialRegion={initialRegion}
           onRegionChangeComplete={this._onRegionChangeComplete}
         >
-          <MapView.Marker
-            coordinate={{ latitude: 37.78825, longitude: -122.4324 }}
-            title="ok"
-            description="desc"
-          >
-            <View>
-              <Text>#OK!</Text>
-            </View>
-          </MapView.Marker>
+          {this.state.tags.map((t, i) => {
+            const { latitude, longitude } = t.coordinates;
+            return (
+              <MapView.Marker coordinate={{ latitude, longitude }} key={i}>
+                <View>
+                  <Text>{t.tag}</Text>
+                </View>
+              </MapView.Marker>
+            );
+          })}
         </MapView>
         <TopIcons
           moveToMyLocation={this._getLocationAsync}
