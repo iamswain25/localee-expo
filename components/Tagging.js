@@ -56,7 +56,8 @@ export default class Tagging extends React.Component {
   };
   render() {
     if (this.props.locationPermission) {
-      const { city, street, region, postalCode, country } = this.props.address;
+      const { city, street, region, postalCode, country } =
+        this.props.address || {};
       return (
         <Modal
           animationType="slide"

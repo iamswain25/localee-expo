@@ -1,229 +1,133 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GeoCollectionReference, GeoFirestore } from "geofirestore";
+import {
+  Post,
+  Tag,
+  USCity,
+  KoreanCity,
+  KoreanNonCity,
+  QueryDocumentSnapshot
+} from "./types";
 import { DocumentSnapshot } from "firebase-functions/lib/providers/firestore";
 admin.initializeApp();
-// // Start writing Firebase Functions
-// // https://firebase.google.com/docs/functions/typescript
-//
-// export const helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
-interface Post {
-  tags: Array<String>;
-  areas: {
-    city: String;
-    country: String;
-    isoCountryCode: String;
-    name: String;
-    postalCode: String;
-    region: String;
-    street: String;
-  };
-  coords: admin.firestore.GeoPoint;
-  createdBy: String;
-}
-interface Tag {
-  tag: String;
-  areas: {
-    city: String;
-    country: String;
-    isoCountryCode: String;
-    name: String;
-    postalCode: String;
-    region: String;
-    street: String;
-  };
-  areaLevel: String[];
-  createdAt: String;
-  createdBy: String;
-  coordinates: admin.firestore.GeoPoint;
-  topicCount: Number;
-  clickCount: Number;
-  searchCount: Number;
-}
+
 const randomizeGeopoint = (geoPoint: admin.firestore.GeoPoint) => {
-  const lat = geoPoint.latitude + Math.random() / 1000;
-  const lng = geoPoint.longitude + Math.random() / 1000;
+  const lat = geoPoint.latitude + Math.random() / 500;
+  const lng = geoPoint.longitude + Math.random() / 500;
   return new admin.firestore.GeoPoint(lat, lng);
 };
+const geofirestore: GeoFirestore = new GeoFirestore(admin.firestore());
+const geocollection: GeoCollectionReference = geofirestore.collection("tags");
 exports.topicsToTags = functions.firestore
   .document("topics/{uuid}")
   .onCreate((snap, context) => {
-    // console.log(context);
-    const posts = <Post>snap.data();
-    const { tags, areas, coords, createdBy } = posts;
     const createdAt = context.timestamp;
-    const geofirestore: GeoFirestore = new GeoFirestore(admin.firestore());
-    const geocollection: GeoCollectionReference = geofirestore.collection(
-      "tags"
-    );
-    // const createdBy = context.auth;
     void snap.ref.update({ createdAt });
-    return Promise.all(
-      tags.map(async (tag: String) => {
-        const coordinates = randomizeGeopoint(coords);
-        return admin
+    const posts = <Post>snap.data();
+    const { tags } = posts;
+    return Promise.all(tags.map(async (tag: String) => eachTag(tag, posts)));
+  });
+
+async function eachTag(tag: String, posts: Post) {
+  const { areas, coords, createdBy } = posts;
+  const coordinates = randomizeGeopoint(coords);
+  const baseTag = await getBaseTagIfExist(tag, areas);
+  const newTag: Tag = {
+    createdAt: new Date(),
+    createdBy,
+    tag,
+    areas,
+    coordinates,
+    topicCount: 0,
+    clickCount: 0,
+    searchCount: 0,
+    zoomLevel: Array.from(Array(21).keys()),
+    parentRef: null
+  };
+  if (baseTag) {
+    await incrementTopicCount(baseTag, createdBy);
+  } else {
+    await geocollection.add(newTag);
+  }
+
+  return true;
+}
+async function incrementTopicCount(
+  snap: DocumentSnapshot | QueryDocumentSnapshot,
+  createdBy: String
+) {
+  const updatedAt = new Date();
+  const updatedBy = createdBy;
+  let topicCount = snap.get("d.topicCount") || 0;
+  topicCount++;
+  await snap.ref.update({
+    "d.topicCount": topicCount,
+    "d.updatedAt": updatedAt,
+    "d.updatedBy": updatedBy
+  });
+  const parentRef = snap.get("d.parentRef");
+  if (parentRef) {
+    const parentSnap = await parentRef.get();
+    await incrementTopicCount(parentSnap, createdBy);
+  }
+}
+
+async function getBaseTagIfExist(tag: String, areas: any) {
+  if (areas.hasOwnProperty("village")) {
+    //Korean
+    if (areas.hasOwnProperty("city")) {
+      const { country, state, city, town } = <KoreanCity>areas;
+      if (state) {
+        const { docs, empty } = await admin
           .firestore()
           .collection("tags")
           .where("d.tag", "==", tag)
-          .where("d.areas.country", "==", areas.country)
-          .where("d.areas.region", "==", areas.region)
-          .where("d.areas.city", "==", areas.city)
-          .get()
-          .then(async ({ docs, empty }) => {
-            if (empty) {
-              const fsTag: Tag = {
-                createdAt,
-                createdBy,
-                tag,
-                areas,
-                coordinates,
-                topicCount: 0,
-                clickCount: 0,
-                searchCount: 0,
-                areaLevel: []
-              };
-              return geocollection.add(fsTag);
-            } else {
-              const updatedAt = new Date();
-              const updatedBy = createdBy;
-              const tagSnap = docs[0];
-              let topicCount = tagSnap.get("d.topicCount") || 0;
-              topicCount++;
-              return Promise.all([
-                setCityAreaLevel(tagSnap),
-                setRegionAreaLevel(tagSnap),
-                setCountryAreaLevel(tagSnap),
-                tagSnap.ref.update({
-                  "d.topicCount": topicCount,
-                  "d.updatedAt": updatedAt,
-                  "d.updatedBy": updatedBy
-                })
-              ]);
-            }
-          });
-      })
-    );
-  });
+          .where("d.areas.country", "==", country)
+          .where("d.areas.state", "==", state)
+          .where("d.areas.city", "==", city)
+          .where("d.areas.town", "==", town)
+          .get();
+        return empty ? null : docs[0];
+      } else {
+        const { docs, empty } = await admin
+          .firestore()
+          .collection("tags")
+          .where("d.tag", "==", tag)
+          .where("d.areas.country", "==", country)
+          .where("d.areas.city", "==", city)
+          .where("d.areas.town", "==", town)
+          .get();
+        return empty ? null : docs[0];
+      }
+    } else {
+      const { country, state, region } = <KoreanNonCity>areas;
+      const { docs, empty } = await admin
+        .firestore()
+        .collection("tags")
+        .where("d.tag", "==", tag)
+        .where("d.areas.country", "==", country)
+        .where("d.areas.state", "==", state)
+        .where("d.areas.region", "==", region)
+        .get();
+      return empty ? null : docs[0];
+    }
+  } else {
+    // US, SF for now
+    const { country, state, city, neighbourhood } = <USCity>areas;
+    if (state) {
+      const { docs, empty } = await admin
+        .firestore()
+        .collection("tags")
+        .where("d.tag", "==", tag)
+        .where("d.areas.country", "==", country)
+        .where("d.areas.state", "==", state)
+        .where("d.areas.city", "==", city)
+        .where("d.areas.neighbourhood", "==", neighbourhood)
+        .get();
+      return empty ? null : docs[0];
+    }
 
-// exports.onUpdateTagAreaLevel = functions.firestore
-//   .document("tags/{uuid}")
-//   .onUpdate(async change => {
-//     const snap = change.after!;
-//     // create or update
-//     return Promise.all([
-//       setCityAreaLevel(snap),
-//       setRegionAreaLevel(snap),
-//       setCountryAreaLevel(snap)
-//     ]);
-//   });
-
-async function setCityAreaLevel(snap: DocumentSnapshot) {
-  const tagId: String = snap.id;
-  const tag: Tag = snap.data()!.d;
-  if (!tag) {
-    return new Error("wrong data format");
+    return false;
   }
-  return admin
-    .firestore()
-    .collection("tags")
-    .where("d.areas.country", "==", tag.areas.country)
-    .where("d.areas.region", "==", tag.areas.region)
-    .where("d.areas.city", "==", tag.areas.city)
-    .orderBy("d.topicCount", "desc")
-    .limit(1)
-    .get()
-    .then(async ({ docs, empty }) => {
-      if (empty) {
-        return true;
-      } else if (docs[0].get("d.topicCount") > tag.topicCount) {
-        return true;
-      } else if (
-        docs[0].id !== tagId &&
-        docs[0].get("d.topicCount") < tag.topicCount
-      ) {
-        return Promise.all([
-          snap.ref.update({
-            "d.areaLevel": admin.firestore.FieldValue.arrayUnion("city")
-          }),
-          docs[0].ref.update({
-            "d.areaLevel": admin.firestore.FieldValue.arrayRemove("city")
-          })
-        ]);
-      } else {
-        return true;
-      }
-    });
-}
-async function setRegionAreaLevel(snap: DocumentSnapshot) {
-  const tagId: String = snap.id;
-  const tag: Tag = snap.data()!.d;
-  if (!tag) {
-    return new Error("wrong data format");
-  }
-  return admin
-    .firestore()
-    .collection("tags")
-    .where("d.areas.country", "==", tag.areas.country)
-    .where("d.areas.region", "==", tag.areas.region)
-    .orderBy("d.topicCount", "desc")
-    .limit(1)
-    .get()
-    .then(async ({ docs, empty }) => {
-      if (empty) {
-        return true;
-      } else if (docs[0].get("d.topicCount") > tag.topicCount) {
-        return true;
-      } else if (
-        docs[0].id !== tagId &&
-        docs[0].get("d.topicCount") < tag.topicCount
-      ) {
-        return Promise.all([
-          snap.ref.update({
-            "d.areaLevel": admin.firestore.FieldValue.arrayUnion("region")
-          }),
-          docs[0].ref.update({
-            "d.areaLevel": admin.firestore.FieldValue.arrayRemove("region")
-          })
-        ]);
-      } else {
-        return true;
-      }
-    });
-}
-async function setCountryAreaLevel(snap: DocumentSnapshot) {
-  const tagId: String = snap.id;
-  const tag: Tag = snap.data()!.d;
-  if (!tag) {
-    return new Error("wrong data format");
-  }
-  return admin
-    .firestore()
-    .collection("tags")
-    .where("d.areas.country", "==", tag.areas.country)
-    .orderBy("d.topicCount", "desc")
-    .limit(1)
-    .get()
-    .then(async ({ docs, empty }) => {
-      if (empty) {
-        return true;
-      } else if (docs[0].get("d.topicCount") > tag.topicCount) {
-        return true;
-      } else if (
-        docs[0].id !== tagId &&
-        docs[0].get("d.topicCount") < tag.topicCount
-      ) {
-        return Promise.all([
-          snap.ref.update({
-            "d.areaLevel": admin.firestore.FieldValue.arrayUnion("country")
-          }),
-          docs[0].ref.update({
-            "d.areaLevel": admin.firestore.FieldValue.arrayRemove("country")
-          })
-        ]);
-      } else {
-        return true;
-      }
-    });
 }

@@ -17,15 +17,31 @@ export default class App extends React.Component {
     this.state = {
       modalVisible: false,
       locationPermission: false,
+      // address: {
+      //   city: "Mountain View",
+      //   country: "United States",
+      //   isoCountryCode: "US",
+      //   name: "1600",
+      //   postalCode: "94043",
+      //   region: "California",
+      //   street: "Amphitheatre Parkway"
+      // },
       address: {
-        city: "Mountain View",
-        country: "United States",
-        isoCountryCode: "US",
-        name: "1600",
-        postalCode: "94043",
-        region: "California",
-        street: "Amphitheatre Parkway"
+        city: "인천",
+        country: "대한민국",
+        country_code: "kr",
+        postcode: "22547",
+        town: "동구"
       },
+      // address: {
+      //   city: "Incheon",
+      //   country: "South Korea",
+      //   isoCountryCode: "KR",
+      //   name: "155",
+      //   postalCode: "404-250",
+      //   region: "Incheon",
+      //   street: "Gajwa 1(il)-dong"
+      // },
       tags: [
         {
           tag: "#ok",
@@ -51,12 +67,13 @@ export default class App extends React.Component {
         return alert("Permission to access location was denied");
       }
     }
-    const { latitude, longitude } = await this._getAddressAsync();
-    const { latitudeDelta, longitudeDelta } = initialRegion;
-    this.mapView.animateToRegion(
-      { latitude, longitude, latitudeDelta, longitudeDelta },
-      2000
-    );
+    await this._getAddressAsync();
+    // const { latitude, longitude } = await this._getAddressAsync();
+    // const { latitudeDelta, longitudeDelta } = initialRegion;
+    // this.mapView.animateToRegion(
+    //   { latitude, longitude, latitudeDelta, longitudeDelta },
+    //   2000
+    // );
   };
 
   _askAddrPermission = async () => {
@@ -80,12 +97,20 @@ export default class App extends React.Component {
       enableHighAccuracy: true
     });
     const { latitude, longitude } = location.coords;
-    const [address] = await Location.reverseGeocodeAsync({
-      latitude,
-      longitude
-    });
-    // console.log(address);
+    // const [address] = await Location.reverseGeocodeAsync({
+    //   latitude,
+    //   longitude
+    // });
+    const { address } = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16&addressdetails=1&osm_type=N`
+    ).then(response => response.json());
+    console.log(address);
     this.setState({ address, coords: location.coords });
+    const { latitudeDelta, longitudeDelta } = initialRegion;
+    this.mapView.animateToRegion(
+      { latitude, longitude, latitudeDelta, longitudeDelta },
+      2000
+    );
     return { address, latitude, longitude };
   };
 
