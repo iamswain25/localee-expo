@@ -2,6 +2,7 @@ import React from "react";
 import { fs, GeoPoint } from "./components/firebase";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { MapView, Constants, Location, Permissions } from "expo";
+
 // import BottomSearch from "./components/BottomSearch";
 import Tagging from "./components/Tagging";
 import TopIcons from "./components/TopIcons";
@@ -44,20 +45,32 @@ export default class App extends React.Component {
       // },
       tags: [
         {
-          tag: "#ok",
-          areas: {},
-          coordinates: new GeoPoint(37.78825, -122.4324),
-          topicCount: 1,
-          clickCount: 0,
-          searchCount: 0
+          geometry: {
+            coordinates: [-122.4324, 37.78825]
+          },
+          properties: {
+            custom: {
+              tag: "#ok",
+              areas: {
+                city: "인천",
+                country: "대한민국",
+                country_code: "kr",
+                postcode: "22547",
+                town: "동구"
+              },
+              topicCount: 1,
+              clickCount: 0,
+              searchCount: 0
+            }
+          }
         }
       ],
       coords: {}
     };
   }
   _onRegionChangeComplete = async region => {
-    const qs = await fs.getMapTags(region);
-    const tags = qs.docs.map(d => d.data());
+    const tags = await fs.getMapTags(region);
+    // let tags = qs.docs.map(d => d.data());
     this.setState({ tags });
   };
   _getLocationAsync = async () => {
@@ -68,12 +81,6 @@ export default class App extends React.Component {
       }
     }
     await this._getAddressAsync();
-    // const { latitude, longitude } = await this._getAddressAsync();
-    // const { latitudeDelta, longitudeDelta } = initialRegion;
-    // this.mapView.animateToRegion(
-    //   { latitude, longitude, latitudeDelta, longitudeDelta },
-    //   2000
-    // );
   };
 
   _askAddrPermission = async () => {
@@ -97,10 +104,6 @@ export default class App extends React.Component {
       enableHighAccuracy: true
     });
     const { latitude, longitude } = location.coords;
-    // const [address] = await Location.reverseGeocodeAsync({
-    //   latitude,
-    //   longitude
-    // });
     const { address } = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16&addressdetails=1&osm_type=N`
     ).then(response => response.json());
@@ -128,12 +131,24 @@ export default class App extends React.Component {
           onRegionChangeComplete={this._onRegionChangeComplete}
         >
           {this.state.tags.map((t, i) => {
-            const { latitude, longitude } = t.coordinates;
+            const [longitude, latitude] = t.geometry.coordinates;
             return (
-              <MapView.Marker coordinate={{ latitude, longitude }} key={i}>
+              <MapView.Marker
+                coordinate={{ latitude, longitude }}
+                key={i}
+                zIndex={i}
+              >
                 <View>
-                  <Text>{t.tag}</Text>
+                  <Text>{t.properties.custom.tag}</Text>
                 </View>
+                <MapView.Callout>
+                  <View style={styles.tooltip}>
+                    <Text>{t.properties.custom.tag}</Text>
+                    <Text>topicCount: {t.properties.custom.topicCount}</Text>
+                    <Text>clickCount: {t.properties.custom.clickCount}</Text>
+                    <Text>searchCount: {t.properties.custom.searchCount}</Text>
+                  </View>
+                </MapView.Callout>
               </MapView.Marker>
             );
           })}
@@ -164,5 +179,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center"
+  },
+  tooltip: {
+    width: 100
   }
 });

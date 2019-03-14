@@ -56,8 +56,29 @@ export default class Tagging extends React.Component {
   };
   render() {
     if (this.props.locationPermission) {
-      const { city, street, region, postalCode, country } =
-        this.props.address || {};
+      const {
+        country,
+        state,
+        county,
+        region,
+        city,
+        town,
+        suburb,
+        neighbourhood
+      } = this.props.address || {};
+      const strAddress = [
+        country,
+        state,
+        county,
+        region,
+        city,
+        town,
+        suburb,
+        neighbourhood
+      ]
+        .filter(e => !!e)
+        .join(" - ")
+        .trim();
       return (
         <Modal
           animationType="slide"
@@ -73,7 +94,7 @@ export default class Tagging extends React.Component {
                 style={{ padding: 10, paddingLeft: 20 }}
               />
             </TouchableOpacity>
-            <Text>{`${region} - ${city}`}</Text>
+            <Text>{strAddress}</Text>
             <TouchableOpacity onPress={this._postTagging}>
               <Text style={{ padding: 10, fontSize: 30, paddingLeft: 20 }}>
                 tag

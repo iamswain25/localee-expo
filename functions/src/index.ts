@@ -1,14 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GeoCollectionReference, GeoFirestore } from "geofirestore";
-import {
-  Post,
-  Tag,
-  USCity,
-  KoreanCity,
-  KoreanNonCity,
-  QueryDocumentSnapshot
-} from "./types";
+import { Post, Tag, Areas, QueryDocumentSnapshot } from "./types";
 import { DocumentSnapshot } from "firebase-functions/lib/providers/firestore";
 admin.initializeApp();
 
@@ -39,10 +32,10 @@ async function eachTag(tag: String, posts: Post) {
     tag,
     areas,
     coordinates,
-    topicCount: 0,
+    topicCount: 1,
     clickCount: 0,
     searchCount: 0,
-    zoomLevel: Array.from(Array(21).keys()),
+    zoomLevel: Array.from(Array(20).keys()).map(a => a+1),
     parentRef: null
   };
   if (baseTag) {
@@ -59,7 +52,7 @@ async function incrementTopicCount(
 ) {
   const updatedAt = new Date();
   const updatedBy = createdBy;
-  let topicCount = snap.get("d.topicCount") || 0;
+  let topicCount = snap.get("d.topicCount") || 1;
   topicCount++;
   await snap.ref.update({
     "d.topicCount": topicCount,
@@ -74,60 +67,42 @@ async function incrementTopicCount(
 }
 
 async function getBaseTagIfExist(tag: String, areas: any) {
-  if (areas.hasOwnProperty("village")) {
-    //Korean
-    if (areas.hasOwnProperty("city")) {
-      const { country, state, city, town } = <KoreanCity>areas;
-      if (state) {
-        const { docs, empty } = await admin
-          .firestore()
-          .collection("tags")
-          .where("d.tag", "==", tag)
-          .where("d.areas.country", "==", country)
-          .where("d.areas.state", "==", state)
-          .where("d.areas.city", "==", city)
-          .where("d.areas.town", "==", town)
-          .get();
-        return empty ? null : docs[0];
-      } else {
-        const { docs, empty } = await admin
-          .firestore()
-          .collection("tags")
-          .where("d.tag", "==", tag)
-          .where("d.areas.country", "==", country)
-          .where("d.areas.city", "==", city)
-          .where("d.areas.town", "==", town)
-          .get();
-        return empty ? null : docs[0];
-      }
-    } else {
-      const { country, state, region } = <KoreanNonCity>areas;
-      const { docs, empty } = await admin
-        .firestore()
-        .collection("tags")
-        .where("d.tag", "==", tag)
-        .where("d.areas.country", "==", country)
-        .where("d.areas.state", "==", state)
-        .where("d.areas.region", "==", region)
-        .get();
-      return empty ? null : docs[0];
-    }
-  } else {
-    // US, SF for now
-    const { country, state, city, neighbourhood } = <USCity>areas;
-    if (state) {
-      const { docs, empty } = await admin
-        .firestore()
-        .collection("tags")
-        .where("d.tag", "==", tag)
-        .where("d.areas.country", "==", country)
-        .where("d.areas.state", "==", state)
-        .where("d.areas.city", "==", city)
-        .where("d.areas.neighbourhood", "==", neighbourhood)
-        .get();
-      return empty ? null : docs[0];
-    }
-
-    return false;
+  const {
+    country,
+    state,
+    county,
+    region,
+    city,
+    town,
+    suburb,
+    neighbourhood
+  } = <Areas>areas;
+  let query = admin
+    .firestore()
+    .collection("tags")
+    .where("d.tag", "==", tag)
+    .where("d.areas.country", "==", country);
+  if (state) {
+    query = query.where("d.areas.state", "==", state);
   }
+  if (county) {
+    query = query.where("d.areas.county", "==", county);
+  }
+  if (region) {
+    query = query.where("d.areas.region", "==", region);
+  }
+  if (city) {
+    query = query.where("d.areas.city", "==", city);
+  }
+  if (town) {
+    query = query.where("d.areas.town", "==", town);
+  }
+  if (suburb) {
+    query = query.where("d.areas.suburb", "==", suburb);
+  }
+  if (neighbourhood) {
+    query = query.where("d.areas.neighbourhood", "==", neighbourhood);
+  }
+  const { docs, empty } = await query.get();
+  return empty ? null : docs[0];
 }
