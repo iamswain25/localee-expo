@@ -4,74 +4,74 @@ import {
   GeoPoint
 } from "@firebase/firestore-types";
 interface Areas {
-  country_code: String;
-  country: String;
-  state: String | undefined;
-  county: String | undefined;
-  region: String | undefined;
-  city: String | undefined;
-  island: String | undefined;
-  suburb: String | undefined;
-  town: String | undefined;
-  neighbourhood: String | undefined;
-  village: String | undefined;
-  city_district: String | undefined;
-  road: String | undefined;
-  postcode: String | undefined;
+  country_code: string;
+  country: string;
+  state: string | undefined;
+  county: string | undefined;
+  region: string | undefined;
+  city: string | undefined;
+  island: string | undefined;
+  suburb: string | undefined;
+  town: string | undefined;
+  neighbourhood: string | undefined;
+  village: string | undefined;
+  city_district: string | undefined;
+  road: string | undefined;
+  postcode: string | undefined;
 }
 
 // interface USCity {
-//   country_code: String;
-//   country: String;
-//   state: String;
-//   county: String;
-//   city: String;
-//   island: String | undefined;
-//   suburb: String | undefined;
-//   town: String | undefined;
-//   neighbourhood: String | undefined;
-//   road: String | undefined;
-//   postcode: String;
+//   country_code: string;
+//   country: string;
+//   state: string;
+//   county: string;
+//   city: string;
+//   island: string | undefined;
+//   suburb: string | undefined;
+//   town: string | undefined;
+//   neighbourhood: string | undefined;
+//   road: string | undefined;
+//   postcode: string;
 // }
 // interface USNonCity {
-//   country_code: String;
-//   country: String;
-//   state: String;
-//   county: String;
+//   country_code: string;
+//   country: string;
+//   state: string;
+//   county: string;
 // }
 // interface KoreanCity {
-//   country_code: String;
-//   country: String;
-//   state: String | undefined;
-//   city: String;
-//   town: String;
-//   village: String;
-//   city_district: String;
-//   road: String | undefined;
-//   postcode: String;
+//   country_code: string;
+//   country: string;
+//   state: string | undefined;
+//   city: string;
+//   town: string;
+//   village: string;
+//   city_district: string;
+//   road: string | undefined;
+//   postcode: string;
 // }
 // interface KoreanNonCity {
-//   country_code: String;
-//   country: String;
-//   state: String;
-//   region: String;
-//   village: String;
-//   road: String;
-//   postcode: String;
+//   country_code: string;
+//   country: string;
+//   state: string;
+//   region: string;
+//   village: string;
+//   road: string;
+//   postcode: string;
 // }
 // type Areas = any | USCity | USNonCity | KoreanCity | KoreanNonCity;
 interface Post {
-  tags: Array<String>;
+  tags: Array<string>;
   areas: Areas;
   coords: GeoPoint;
-  createdBy: String;
+  createdBy: string;
 }
 interface Tag {
-  tag: String;
+  tag: string;
   areas: Areas;
   zoomLevel: Number[];
   createdAt: Date;
-  createdBy: String;
+  createdBy: string;
   coordinates: GeoPoint;
   topicCount: Number;
   clickCount: Number;

@@ -8,7 +8,7 @@ import {
   TouchableOpacity
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Constants } from "expo";
+import { Constants, IntentLauncherAndroid as IntentLauncher } from "expo";
 import { fs, GeoPoint } from "./firebase";
 const styles = StyleSheet.create({
   statusBar: {
@@ -24,21 +24,10 @@ export default class Tagging extends React.Component {
     super(props);
     this.state = { text: "", address: "" };
   }
-  componentDidUpdate() {
-    if (!this.props.locationPermission) {
-      this.props.askAddrPermission().then(perm => {
-        if (!perm) {
-          alert("Permission to access location was denied");
-        } else {
-          this.props.getAddressAsync();
-        }
-      });
-    }
-  }
   _postTagging = async () => {
     console.log("tagging");
     const content = this.state.text;
-    const tags = content.match(/#(\w+)/g);
+    // const tags = content.match(/#(\w+)/g);
     const areas = this.props.address;
     const coords = new GeoPoint(
       this.props.coords.latitude,
@@ -46,7 +35,7 @@ export default class Tagging extends React.Component {
     );
     fs.addTopic({
       content,
-      tags,
+      // tags,
       areas,
       coords,
       createdBy: Constants.installationId
@@ -55,71 +44,67 @@ export default class Tagging extends React.Component {
     this.setState({ text: "" });
   };
   render() {
-    if (this.props.locationPermission) {
-      const {
-        country,
-        state,
-        county,
-        region,
-        city,
-        town,
-        suburb,
-        neighbourhood
-      } = this.props.address || {};
-      const strAddress = [
-        country,
-        state,
-        county,
-        region,
-        city,
-        town,
-        suburb,
-        neighbourhood
-      ]
-        .filter(e => !!e)
-        .join(" - ")
-        .trim();
-      return (
-        <Modal
-          animationType="slide"
-          presentationStyle="fullScreen"
-          visible={this.props.modalVisible}
-          onRequestClose={e => e}
-        >
-          <View style={styles.statusBar}>
-            <TouchableOpacity onPress={this.props.closeModal}>
-              <Ionicons
-                name="md-close"
-                size={30}
-                style={{ padding: 10, paddingLeft: 20 }}
-              />
-            </TouchableOpacity>
-            <Text>{strAddress}</Text>
-            <TouchableOpacity onPress={this._postTagging}>
-              <Text style={{ padding: 10, fontSize: 30, paddingLeft: 20 }}>
-                tag
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <TextInput
-            autoFocus={true}
-            multiline={true}
-            style={{
-              backgroundColor: "white",
-              fontSize: 30,
-              flex: 1,
-              textAlignVertical: "top",
-              padding: 20
-            }}
-            value={this.state.text}
-            onChangeText={text => this.setState({ text })}
-            maxLength={300}
-            placeholder="What's happening in your zone?"
-          />
-        </Modal>
-      );
-    } else {
-      return <View />;
-    }
+    const {
+      country,
+      state,
+      county,
+      region,
+      city,
+      town,
+      suburb,
+      neighbourhood
+    } = this.props.address || {};
+    const strAddress = [
+      country,
+      state,
+      county,
+      region,
+      city,
+      town,
+      suburb,
+      neighbourhood
+    ]
+      .filter(e => !!e)
+      .join(" - ")
+      .trim();
+    return (
+      <Modal
+        animationType="slide"
+        presentationStyle="fullScreen"
+        visible={this.props.modalVisible}
+        onRequestClose={this.props.closeModal}
+      >
+        <View style={styles.statusBar}>
+          <TouchableOpacity onPress={this.props.closeModal}>
+            <Ionicons
+              name="md-close"
+              size={30}
+              style={{ padding: 10, paddingLeft: 20 }}
+            />
+          </TouchableOpacity>
+          <Text>{strAddress}</Text>
+          <TouchableOpacity onPress={this._postTagging}>
+            <Text style={{ padding: 10, fontSize: 30, paddingLeft: 20 }}>
+              tag
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <TextInput
+          autoFocus={true}
+          multiline={true}
+          style={{
+            backgroundColor: "white",
+            fontSize: 30,
+            flex: 1,
+            textAlignVertical: "top",
+            padding: 20
+          }}
+          value={this.state.text}
+          onChangeText={text => this.setState({ text })}
+          maxLength={300}
+          placeholder="What's happening in your zone?"
+        />
+      </Modal>
+    );
   }
 }

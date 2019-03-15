@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import { GeoCollectionReference, GeoFirestore } from "geofirestore";
 import { Post, Tag, Areas, QueryDocumentSnapshot } from "./types";
 import { DocumentSnapshot } from "firebase-functions/lib/providers/firestore";
+import { extractHashtags } from "twitter-text";
 admin.initializeApp();
 
 const randomizeGeopoint = (geoPoint: admin.firestore.GeoPoint) => {
@@ -15,14 +16,15 @@ const geocollection: GeoCollectionReference = geofirestore.collection("tags");
 exports.topicsToTags = functions.firestore
   .document("topics/{uuid}")
   .onCreate((snap, context) => {
+    const content: string = snap.get("content");
+    const tags: string[] = extractHashtags(content);
     const createdAt = context.timestamp;
-    void snap.ref.update({ createdAt });
+    void snap.ref.update({ createdAt, tags });
     const posts = <Post>snap.data();
-    const { tags } = posts;
-    return Promise.all(tags.map(async (tag: String) => eachTag(tag, posts)));
+    return Promise.all(tags.map(async (tag: string) => eachTag(tag, posts)));
   });
 
-async function eachTag(tag: String, posts: Post) {
+async function eachTag(tag: string, posts: Post) {
   const { areas, coords, createdBy } = posts;
   const coordinates = randomizeGeopoint(coords);
   const baseTag = await getBaseTagIfExist(tag, areas);
@@ -35,7 +37,7 @@ async function eachTag(tag: String, posts: Post) {
     topicCount: 1,
     clickCount: 0,
     searchCount: 0,
-    zoomLevel: Array.from(Array(20).keys()).map(a => a+1),
+    zoomLevel: arrFrom1to20(),
     parentRef: null
   };
   if (baseTag) {
@@ -46,9 +48,12 @@ async function eachTag(tag: String, posts: Post) {
 
   return true;
 }
+function arrFrom1to20() {
+  return Array.from(Array(20).keys()).map(a => a + 1);
+}
 async function incrementTopicCount(
   snap: DocumentSnapshot | QueryDocumentSnapshot,
-  createdBy: String
+  createdBy: string
 ) {
   const updatedAt = new Date();
   const updatedBy = createdBy;
@@ -57,7 +62,8 @@ async function incrementTopicCount(
   await snap.ref.update({
     "d.topicCount": topicCount,
     "d.updatedAt": updatedAt,
-    "d.updatedBy": updatedBy
+    "d.updatedBy": updatedBy,
+    "d.zoomLevel": arrFrom1to20()
   });
   const parentRef = snap.get("d.parentRef");
   if (parentRef) {
@@ -66,7 +72,7 @@ async function incrementTopicCount(
   }
 }
 
-async function getBaseTagIfExist(tag: String, areas: any) {
+async function getBaseTagIfExist(tag: string, areas: any) {
   const {
     country,
     state,
