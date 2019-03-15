@@ -1,11 +1,18 @@
 import React from "react";
-import { fs, GeoPoint } from "./components/firebase";
-import { StyleSheet, Text, View, Animated } from "react-native";
-import { MapView, Constants, Location, Permissions } from "expo";
+import { fs } from "./components/firebase";
+import { StyleSheet, Text, View, Alert } from "react-native";
+import {
+  MapView,
+  Constants,
+  Location,
+  Permissions,
+  IntentLauncherAndroid as IntentLauncher
+} from "expo";
 
 // import BottomSearch from "./components/BottomSearch";
 import Tagging from "./components/Tagging";
 import TopIcons from "./components/TopIcons";
+import Loader from "./components/Loader";
 const initialRegion = {
   latitude: 37.78825,
   longitude: -122.4324,
@@ -17,45 +24,25 @@ export default class App extends React.Component {
     super(props);
     this.state = {
       modalVisible: false,
-      locationPermission: false,
-      // address: {
-      //   city: "Mountain View",
-      //   country: "United States",
-      //   isoCountryCode: "US",
-      //   name: "1600",
-      //   postalCode: "94043",
-      //   region: "California",
-      //   street: "Amphitheatre Parkway"
-      // },
-      address: {
-        city: "인천",
-        country: "대한민국",
-        country_code: "kr",
-        postcode: "22547",
-        town: "동구"
-      },
-      // address: {
-      //   city: "Incheon",
-      //   country: "South Korea",
-      //   isoCountryCode: "KR",
-      //   name: "155",
-      //   postalCode: "404-250",
-      //   region: "Incheon",
-      //   street: "Gajwa 1(il)-dong"
-      // },
+      locationPermission: "pending",
+      address: {},
+      loading: false,
       tags: [
         {
           geometry: {
             coordinates: [-122.4324, 37.78825]
           },
           properties: {
-            tag: "#ok",
+            tag: "#loadingTest",
             areas: {
-              city: "인천",
-              country: "대한민국",
-              country_code: "kr",
-              postcode: "22547",
-              town: "동구"
+              city: "SF",
+              country: "USA",
+              country_code: "us",
+              county: "SF",
+              neighbourhood: "Ocean View",
+              postcode: "94112",
+              road: "Regent Street",
+              state: "California"
             },
             topicCount: 1,
             clickCount: 0,
@@ -68,35 +55,88 @@ export default class App extends React.Component {
   }
   _onRegionChangeComplete = async region => {
     const tags = await fs.getMapTags(region);
-    // let tags = qs.docs.map(d => d.data());
     this.setState({ tags });
   };
   _getLocationAsync = async () => {
-    if (!this.state.locationPermission) {
+    if (this.state.locationPermission !== "granted") {
+      // {
+      //   "gpsAvailable": true,
+      //   "locationServicesEnabled": true,
+      //   "networkAvailable": true,
+      //   "passiveAvailable": true,
+      // }
+      const {
+        locationServicesEnabled
+      } = await Location.getProviderStatusAsync();
+      if (!locationServicesEnabled) {
+        return Alert.alert(
+          "Location service denied",
+          "Need to turn on the location service in order to post on your area. Please turn on device setting for location",
+          [
+            {
+              text: "Cancel",
+              style: "cancel"
+            },
+            {
+              text: "SETTING",
+              onPress: () => {
+                IntentLauncher.startActivityAsync(
+                  IntentLauncher.ACTION_LOCATION_SOURCE_SETTINGS
+                  // need package name but doens't look like it's supported by expo yet
+
+                  // IntentLauncher.ACTION_APPLICATION_DETAILS_SETTINGS
+                );
+              }
+            }
+          ]
+        );
+      }
       const perm = await this._askAddrPermission();
-      if (!perm) {
-        return alert("Permission to access location was denied");
+      if (perm === "denied") {
+        this._setTaggingModal(false);
+        return Alert.alert(
+          "Location permission denied",
+          "Need to turn on the location permission in order to post on your area. Otherwise, view only. Please turn on app-level permissions for location",
+          [
+            {
+              text: "Cancel",
+              style: "cancel"
+            },
+            {
+              text: "SETTING",
+              onPress: () => {
+                IntentLauncher.startActivityAsync(
+                  IntentLauncher.ACTION_LOCATION_SOURCE_SETTINGS
+                  // need package name but doens't look like it's supported by expo yet
+                  // IntentLauncher.ACTION_APPLICATION_DETAILS_SETTINGS
+                );
+              }
+            }
+          ]
+        );
       }
     }
-    await this._getAddressAsync();
+    return await this._getAddressAsync();
   };
 
   _askAddrPermission = async () => {
     console.log("ask permission");
-    let locationPermission = null;
-    let { status } = await Permissions.askAsync(Permissions.LOCATION);
-    if (status !== "granted") {
-      locationPermission = false;
-      this.setState({ locationPermission });
-    } else {
-      locationPermission = true;
-      this.setState({ locationPermission });
-    }
+
+    const { status } = await Permissions.askAsync(Permissions.LOCATION);
+    const locationPermission = status;
+    // if (status !== "granted") {
+    console.log(`locationPermission: ${locationPermission}`);
+    this.setState({ locationPermission });
     return locationPermission;
   };
 
   _getAddressAsync = async () => {
     console.log("get address");
+    if (this.state.loading) {
+      console.log(`loading: ${this.state.loading}`);
+      return false;
+    }
+    this.setState({ loading: true });
     const location = await Location.getCurrentPositionAsync({
       maximumAge: 5000,
       enableHighAccuracy: true
@@ -106,7 +146,7 @@ export default class App extends React.Component {
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16&addressdetails=1&osm_type=N`
     ).then(response => response.json());
     console.log(address);
-    this.setState({ address, coords: location.coords });
+    this.setState({ address, coords: location.coords, loading: false });
     const { latitudeDelta, longitudeDelta } = initialRegion;
     this.mapView.animateToRegion(
       { latitude, longitude, latitudeDelta, longitudeDelta },
@@ -115,8 +155,19 @@ export default class App extends React.Component {
     return { address, latitude, longitude };
   };
 
-  _setTaggingModal = isShow => {
-    this.setState({ modalVisible: isShow });
+  _setTaggingModal = async isShow => {
+    if (isShow) {
+      if (this.state.locationPermission !== "granted") {
+        await this._getLocationAsync();
+        if (this.state.locationPermission === "granted") {
+          this.setState({ modalVisible: isShow });
+        }
+      } else {
+        this.setState({ modalVisible: isShow });
+      }
+    } else {
+      this.setState({ modalVisible: isShow });
+    }
   };
 
   render() {
@@ -137,7 +188,7 @@ export default class App extends React.Component {
                 zIndex={i}
               >
                 <View>
-                  <Text>{t.properties.tag}</Text>
+                  <Text>#{t.properties.tag}</Text>
                 </View>
                 <MapView.Callout>
                   <View style={styles.tooltip}>
@@ -159,12 +210,11 @@ export default class App extends React.Component {
         <Tagging
           modalVisible={this.state.modalVisible}
           closeModal={e => this._setTaggingModal(false)}
-          locationPermission={this.state.locationPermission}
           address={this.state.address}
           coords={this.state.coords}
-          askAddrPermission={this._askAddrPermission}
-          getAddressAsync={this._getAddressAsync}
+          getLocationAsync={this._getLocationAsync}
         />
+        <Loader style={styles.loader} visible={this.state.loading} />
       </View>
     );
   }
@@ -180,5 +230,10 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     width: 100
+  },
+  loader: {
+    position: "absolute",
+    justifyContent: "center",
+    flex: 1
   }
 });
