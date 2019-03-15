@@ -188,7 +188,11 @@ export default class App extends React.Component {
                 zIndex={i}
               >
                 <View>
-                  <Text>#{t.properties.tag}</Text>
+                  <Text
+                    style={{ fontSize: Math.log(t.properties.topicCount) + 15 }}
+                  >
+                    #{t.properties.tag}
+                  </Text>
                 </View>
                 <MapView.Callout>
                   <View style={styles.tooltip}>
