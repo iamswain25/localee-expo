@@ -4,6 +4,32 @@ import "firebase/firestore";
 import { GeoCollectionReference, GeoFirestore } from "geofirestore";
 // import "firebase/storage";
 // import "firebase/auth";
+// Array [
+//   Object {
+//     "geometry": Object {
+//       "coordinates": Array [
+//         -122.45530843171903,
+//         37.710596915926274,
+//       ],
+//       "type": "Point",
+//     },
+//     "id": 12,
+//     "properties": Object {
+//       "cluster": true,
+//       "cluster_id": 12,
+//       "custom": Object {
+//         "clickCount": 0,
+//         "searchCount": 0,
+//         "tag": "#hello",
+//         "topicCount": 0,
+//       },
+//       "fsDocId": "NNF09Mt3utC0unchdVvZ",
+//       "point_count": 2,
+//       "point_count_abbreviated": 2,
+//     },
+//     "type": "Feature",
+//   },
+// ]
 const config = {
   apiKey: "AIzaSyBI7To_UdRP4vO2Im5OVIq32eQ1WSs7mTY",
   authDomain: "localee0.firebaseapp.com",
@@ -45,40 +71,22 @@ const fs = {
           coordinates: [coordinates.longitude, coordinates.latitude]
         },
         properties: {
-          custom: {
-            tag,
-            searchCount,
-            topicCount,
-            clickCount
-          },
+          tag,
+          searchCount,
+          topicCount,
+          clickCount,
           fsDocId: d.id
         }
       };
     });
     const cluster = new Supercluster({
-      radius: 10,
-      maxZoom: 14,
+      radius: 40,
+      maxZoom: 20,
       reduce: (a, p) => {
-        if (a.custom.topicCount < p.custom.topicCount) {
-          firestore
-            .doc(`/tags/${a.fsDocId}`)
-            .update(
-              "d.zoomLevel",
-              firebase.firestore.FieldValue.arrayRemove(zoom)
-            );
-          a.custom = p.custom;
-        } else {
-          firestore
-            .doc(`/tags/${p.fsDocId}`)
-            .update(
-              "d.zoomLevel",
-              firebase.firestore.FieldValue.arrayRemove(zoom)
-            );
+        if (a.topicCount < p.topicCount) {
+          a = p;
         }
       }
-      // map: p => {
-      //   console.log(p);
-      // }
     });
     cluster.load(rawMarkers);
     const padding = 0;
@@ -91,9 +99,27 @@ const fs = {
       ],
       zoom
     );
-    console.log(markers);
+    removeTagZoomLevel(qs, zoom, markers);
     return markers;
   }
 };
+
+async function removeTagZoomLevel({ docs, size }, zoom, geoJsonMarkers) {
+  if (docs && zoom && geoJsonMarkers && size) {
+    if (size !== geoJsonMarkers.length) {
+      const remainingMarkerIds = geoJsonMarkers.map(m => m.properties.fsDocId);
+      docs.forEach(d => {
+        if (!remainingMarkerIds.includes(d.id)) {
+          firestore
+            .doc(`/tags/${d.id}`)
+            .update(
+              "d.zoomLevel",
+              firebase.firestore.FieldValue.arrayRemove(zoom)
+            );
+        }
+      });
+    }
+  }
+}
 
 export { firestore, firebase, GeoPoint, user, fs };

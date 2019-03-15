@@ -49,19 +49,17 @@ export default class App extends React.Component {
             coordinates: [-122.4324, 37.78825]
           },
           properties: {
-            custom: {
-              tag: "#ok",
-              areas: {
-                city: "인천",
-                country: "대한민국",
-                country_code: "kr",
-                postcode: "22547",
-                town: "동구"
-              },
-              topicCount: 1,
-              clickCount: 0,
-              searchCount: 0
-            }
+            tag: "#ok",
+            areas: {
+              city: "인천",
+              country: "대한민국",
+              country_code: "kr",
+              postcode: "22547",
+              town: "동구"
+            },
+            topicCount: 1,
+            clickCount: 0,
+            searchCount: 0
           }
         }
       ],
@@ -139,14 +137,14 @@ export default class App extends React.Component {
                 zIndex={i}
               >
                 <View>
-                  <Text>{t.properties.custom.tag}</Text>
+                  <Text>{t.properties.tag}</Text>
                 </View>
                 <MapView.Callout>
                   <View style={styles.tooltip}>
-                    <Text>{t.properties.custom.tag}</Text>
-                    <Text>topicCount: {t.properties.custom.topicCount}</Text>
-                    <Text>clickCount: {t.properties.custom.clickCount}</Text>
-                    <Text>searchCount: {t.properties.custom.searchCount}</Text>
+                    <Text>{t.properties.tag}</Text>
+                    <Text>topicCount: {t.properties.topicCount}</Text>
+                    <Text>clickCount: {t.properties.clickCount}</Text>
+                    <Text>searchCount: {t.properties.searchCount}</Text>
                   </View>
                 </MapView.Callout>
               </MapView.Marker>
