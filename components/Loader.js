@@ -10,7 +10,7 @@ export default class extends React.Component {
             color="#0000ff"
             style={styles.spinner}
           />
-          <Text style={{ fontSize: 20 }}>locating your position...</Text>
+          <Text style={{ fontSize: 20 }}>{this.props.text}</Text>
         </View>
       );
     } else {

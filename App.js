@@ -1,6 +1,6 @@
 import React from "react";
 import { fs } from "./components/firebase";
-import { StyleSheet, Text, View, Alert } from "react-native";
+import { StyleSheet, Text, View, Alert, TouchableOpacity } from "react-native";
 import {
   MapView,
   Constants,
@@ -11,29 +11,54 @@ import {
 
 // import BottomSearch from "./components/BottomSearch";
 import Tagging from "./components/Tagging";
+import Timeline from "./components/Timeline";
 import TopIcons from "./components/TopIcons";
 import Loader from "./components/Loader";
 const initialRegion = {
   latitude: 37.78825,
   longitude: -122.4324,
-  latitudeDelta: 0.0922,
-  longitudeDelta: 0.0421
+  latitudeDelta: 9.22,
+  longitudeDelta: 4.21
 };
 export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      modalVisible: false,
+      taggingVisible: false,
+      timelineVisible: false,
       locationPermission: "pending",
       address: {},
       loading: false,
+      timeline: [],
+      loaderText: "locating your position...",
+      tag: {
+        geometry: {
+          coordinates: [-122.4324, 37.78825]
+        },
+        properties: {
+          tag: "loadingTest",
+          areas: {
+            city: "SF",
+            country: "USA",
+            country_code: "us",
+            county: "SF",
+            neighbourhood: "Ocean View",
+            postcode: "94112",
+            road: "Regent Street",
+            state: "California"
+          },
+          topicCount: 1,
+          clickCount: 0,
+          searchCount: 0
+        }
+      },
       tags: [
         {
           geometry: {
             coordinates: [-122.4324, 37.78825]
           },
           properties: {
-            tag: "#loadingTest",
+            tag: "loadingTest",
             areas: {
               city: "SF",
               country: "USA",
@@ -136,7 +161,7 @@ export default class App extends React.Component {
       console.log(`loading: ${this.state.loading}`);
       return false;
     }
-    this.setState({ loading: true });
+    this.setState({ loading: true, loaderText: "locating your position..." });
     const location = await Location.getCurrentPositionAsync({
       maximumAge: 5000,
       enableHighAccuracy: true
@@ -160,14 +185,40 @@ export default class App extends React.Component {
       if (this.state.locationPermission !== "granted") {
         await this._getLocationAsync();
         if (this.state.locationPermission === "granted") {
-          this.setState({ modalVisible: isShow });
+          this.setState({ taggingVisible: isShow });
         }
       } else {
-        this.setState({ modalVisible: isShow });
+        this.setState({ taggingVisible: isShow });
       }
     } else {
-      this.setState({ modalVisible: isShow });
+      this.setState({ taggingVisible: isShow });
     }
+  };
+  _setTimelineModal = async isShow => {
+    this.setState({ timelineVisible: isShow });
+  };
+  _onPressMarker = async tag => {
+    this.setState({
+      timelineVisible: true,
+      tag,
+      loading: true,
+      loaderText: "loading timeline..."
+    });
+    // console.log(tag);
+    const timeline = await fs.getTimeline(tag);
+    this.setState({ timeline, loading: false });
+  };
+  _getTimelineArea = async areas => {
+    const { tag } = this.state;
+    tag.properties.tag = "";
+    this.setState({
+      timelineVisible: true,
+      loading: true,
+      tag,
+      loaderText: "loading timeline..."
+    });
+    const timeline = await fs.getTimelineArea(areas);
+    this.setState({ timeline, loading: false });
   };
 
   render() {
@@ -186,22 +237,17 @@ export default class App extends React.Component {
                 coordinate={{ latitude, longitude }}
                 key={i}
                 zIndex={i}
+                onPress={() => this._onPressMarker(t)}
               >
                 <View>
                   <Text
-                    style={{ fontSize: Math.log(t.properties.topicCount) + 15 }}
+                    style={{
+                      fontSize: Math.log(t.properties.topicCount) + 15
+                    }}
                   >
                     #{t.properties.tag}
                   </Text>
                 </View>
-                <MapView.Callout>
-                  <View style={styles.tooltip}>
-                    <Text>{t.properties.tag}</Text>
-                    <Text>topicCount: {t.properties.topicCount}</Text>
-                    <Text>clickCount: {t.properties.clickCount}</Text>
-                    <Text>searchCount: {t.properties.searchCount}</Text>
-                  </View>
-                </MapView.Callout>
               </MapView.Marker>
             );
           })}
@@ -211,14 +257,28 @@ export default class App extends React.Component {
           setTaggingModal={this._setTaggingModal}
         />
         {/* <BottomSearch /> */}
+        <Timeline
+          timelineVisible={this.state.timelineVisible}
+          closeModal={e => this._setTimelineModal(false)}
+          address={this.state.address}
+          timeline={this.state.timeline}
+          getTimelineArea={this._getTimelineArea}
+          tag={this.state.tag}
+          writeTagging={e => this._setTaggingModal(true)}
+        />
         <Tagging
-          modalVisible={this.state.modalVisible}
+          taggingVisible={this.state.taggingVisible}
           closeModal={e => this._setTaggingModal(false)}
           address={this.state.address}
           coords={this.state.coords}
           getLocationAsync={this._getLocationAsync}
+          tag={this.state.tag}
         />
-        <Loader style={styles.loader} visible={this.state.loading} />
+        <Loader
+          style={styles.loader}
+          visible={this.state.loading}
+          text={this.state.loaderText}
+        />
       </View>
     );
   }
@@ -226,7 +286,6 @@ export default class App extends React.Component {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: Constants.statusBarHeight,
     flex: 1,
     backgroundColor: "#fff",
     alignItems: "center",
@@ -238,6 +297,7 @@ const styles = StyleSheet.create({
   loader: {
     position: "absolute",
     justifyContent: "center",
-    flex: 1
+    flex: 1,
+    zIndex: 99999999
   }
 });

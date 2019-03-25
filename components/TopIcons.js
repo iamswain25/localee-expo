@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
   floatingTop: {
     position: "absolute",
     backgroundColor: "rgba(255, 255, 255, 0.8)",
-    top: 10,
+    top: 30,
     right: 10,
     alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,

@@ -1,9 +1,7 @@
 import firebase from "firebase/app";
 import Supercluster from "supercluster";
 import "firebase/firestore";
-import { GeoCollectionReference, GeoFirestore } from "geofirestore";
-// import "firebase/storage";
-// import "firebase/auth";
+import { GeoFirestore } from "geofirestore";
 
 const config = {
   apiKey: "AIzaSyBI7To_UdRP4vO2Im5OVIq32eQ1WSs7mTY",
@@ -17,9 +15,64 @@ firebase.initializeApp(config);
 const firestore = firebase.firestore();
 const GeoPoint = firebase.firestore.GeoPoint;
 const geofirestore = new GeoFirestore(firestore);
+const arrayArea = [
+  "country",
+  "state",
+  "county",
+  "region",
+  "city",
+  "town",
+  "suburb",
+  "neighbourhood"
+];
 let user = null;
+let _lastSnap = null;
+let query;
 const fs = {
   addTopic: async _obj => firestore.collection("topics").add(_obj),
+  loadMoreTimeline: async () => {
+    if (_lastSnap) {
+      query = query.startAfter(_lastSnap);
+    }
+    const { docs, size } = await query.get();
+    _lastSnap = docs[size - 1];
+    console.log(`timeline load more: ${size}`);
+    return docs.map(d => d.data());
+  },
+  getTimeline: async tag => {
+    query = firestore
+      .collection("topics")
+      .where("tags", "array-contains", tag.properties.tag)
+      .orderBy("createdAt", "asc")
+      .limit(10);
+    arrayArea.every(a => {
+      if (a in tag.properties.areas) {
+        query = query.where(`areas.${a}`, "==", tag.properties.areas[a]);
+      }
+      return true;
+    });
+    const { docs, size } = await query.get();
+    _lastSnap = docs[size - 1];
+    console.log(`timeline size: ${size}`);
+    return docs.map(d => d.data());
+  },
+  getTimelineArea: async areas => {
+    query = firestore
+      .collection("topics")
+      .orderBy("createdAt", "asc")
+      .limit(10);
+
+    arrayArea.every(a => {
+      if (a in areas) {
+        query = query.where(`areas.${a}`, "==", areas[a]);
+      }
+      return true;
+    });
+    const { docs, size } = await query.get();
+    _lastSnap = docs[size - 1];
+    console.log(`timelineArea size: ${size}`);
+    return docs.map(d => d.data());
+  },
   getMapTags: async _region => {
     const { latitude, longitude, latitudeDelta, longitudeDelta } = _region;
     // console.log(latitude, longitude, latitudeDelta, longitudeDelta);
@@ -36,6 +89,7 @@ const fs = {
     const rawMarkers = qs.docs.map(d => {
       const {
         tag,
+        areas,
         searchCount,
         topicCount,
         clickCount,
@@ -47,6 +101,7 @@ const fs = {
         },
         properties: {
           tag,
+          areas,
           searchCount,
           topicCount,
           clickCount,

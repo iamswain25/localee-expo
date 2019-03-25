@@ -27,6 +27,9 @@ export default class Tagging extends React.Component {
   _postTagging = async () => {
     console.log("tagging");
     const content = this.state.text;
+    if (content.length < 1) {
+      return alert("no input");
+    }
     // const tags = content.match(/#(\w+)/g);
     const areas = this.props.address;
     const coords = new GeoPoint(
@@ -35,7 +38,6 @@ export default class Tagging extends React.Component {
     );
     fs.addTopic({
       content,
-      // tags,
       areas,
       coords,
       createdBy: Constants.installationId
@@ -54,7 +56,20 @@ export default class Tagging extends React.Component {
       suburb,
       neighbourhood
     } = this.props.address || {};
-    const strAddress = [
+    // const strAddress = [
+    //   country,
+    //   state,
+    //   county,
+    //   region,
+    //   city,
+    //   town,
+    //   suburb,
+    //   neighbourhood
+    // ]
+    //   .filter(e => !!e)
+    //   .join(" - ")
+    //   .trim();
+    const minAddress = [
       country,
       state,
       county,
@@ -64,14 +79,13 @@ export default class Tagging extends React.Component {
       suburb,
       neighbourhood
     ]
-      .filter(e => !!e)
-      .join(" - ")
-      .trim();
+      .reverse()
+      .find(a => a && a.length > 0);
     return (
       <Modal
         animationType="slide"
         presentationStyle="fullScreen"
-        visible={this.props.modalVisible}
+        visible={this.props.taggingVisible}
         onRequestClose={this.props.closeModal}
       >
         <View style={styles.statusBar}>
@@ -82,7 +96,7 @@ export default class Tagging extends React.Component {
               style={{ padding: 10, paddingLeft: 20 }}
             />
           </TouchableOpacity>
-          <Text>{strAddress}</Text>
+          <Text>{minAddress}</Text>
           <TouchableOpacity onPress={this._postTagging}>
             <Text style={{ padding: 10, fontSize: 30, paddingLeft: 20 }}>
               tag
