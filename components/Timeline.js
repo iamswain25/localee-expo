@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: "yellowgreen"
   },
   pad20: { padding: 20 },
-  back: { backgroundColor: "yellow" },
+  back: { backgroundColor: "#fcf03c" },
   textCenter: { textAlign: "center" },
   statusBar: {
     backgroundColor: "white",
