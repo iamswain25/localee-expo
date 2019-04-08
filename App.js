@@ -174,7 +174,8 @@ export default class App extends React.Component {
     ).then(response => response.json());
     console.log(address);
     this.setState({ address, coords: location.coords, loading: false });
-    const { latitudeDelta, longitudeDelta } = initialRegion;
+    const [latitudeDelta, longitudeDelta] = [0.01, 0.01];
+    // const { latitudeDelta, longitudeDelta } = initialRegion;
     this.mapView.animateToRegion(
       { latitude, longitude, latitudeDelta, longitudeDelta },
       2000
@@ -229,6 +230,10 @@ export default class App extends React.Component {
           style={{ alignSelf: "stretch", height: 200, flex: 1 }}
           initialRegion={initialRegion}
           onRegionChangeComplete={this._onRegionChangeComplete}
+          showsBuildings={false}
+          showsTraffic={false}
+          showsIndoors={false}
+          maxZoomLevel={18}
         >
           {this.state.tags.map((t, i) => {
             const [longitude, latitude] = t.geometry.coordinates;

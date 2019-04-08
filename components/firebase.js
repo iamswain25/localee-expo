@@ -111,8 +111,8 @@ const fs = {
     });
 
     const cluster = new Supercluster({
-      radius: 40,
-      maxZoom: 20,
+      radius: 80,
+      maxZoom: 18,
       reduce: (a, p) => {
         // console.log(a.topicCount, p.topicCount);
         if (a.topicCount < p.topicCount) {
