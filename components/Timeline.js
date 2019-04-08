@@ -38,7 +38,7 @@ export default class extends React.Component {
       neighbourhood
     ]
       .reverse()
-      .find(a => a.length > 0);
+      .find(a => a && a.length > 0);
     return (
       <Modal
         animationType="slide"

@@ -56,19 +56,6 @@ export default class Tagging extends React.Component {
       suburb,
       neighbourhood
     } = this.props.address || {};
-    // const strAddress = [
-    //   country,
-    //   state,
-    //   county,
-    //   region,
-    //   city,
-    //   town,
-    //   suburb,
-    //   neighbourhood
-    // ]
-    //   .filter(e => !!e)
-    //   .join(" - ")
-    //   .trim();
     const minAddress = [
       country,
       state,
@@ -85,7 +72,7 @@ export default class Tagging extends React.Component {
       <Modal
         animationType="slide"
         presentationStyle="fullScreen"
-        visible={this.props.taggingVisible}
+        visible={this.props.visible}
         onRequestClose={this.props.closeModal}
       >
         <View style={styles.statusBar}>

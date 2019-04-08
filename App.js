@@ -1,9 +1,8 @@
 import React from "react";
 import { fs } from "./components/firebase";
-import { StyleSheet, Text, View, Alert, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, Alert } from "react-native";
 import {
   MapView,
-  Constants,
   Location,
   Permissions,
   IntentLauncherAndroid as IntentLauncher
@@ -12,8 +11,10 @@ import {
 // import BottomSearch from "./components/BottomSearch";
 import Tagging from "./components/Tagging";
 import Timeline from "./components/Timeline";
+import BottomSearch from "./components/BottomSearch";
 import TopIcons from "./components/TopIcons";
 import Loader from "./components/Loader";
+import Info from "./components/Info";
 const initialRegion = {
   latitude: 37.78825,
   longitude: -122.4324,
@@ -26,6 +27,7 @@ export default class App extends React.Component {
     this.state = {
       taggingVisible: false,
       timelineVisible: false,
+      infoVisible: false,
       locationPermission: "pending",
       address: {},
       loading: false,
@@ -194,9 +196,7 @@ export default class App extends React.Component {
       this.setState({ taggingVisible: isShow });
     }
   };
-  _setTimelineModal = async isShow => {
-    this.setState({ timelineVisible: isShow });
-  };
+  setStateModal = state => this.setState(state);
   _onPressMarker = async tag => {
     this.setState({
       timelineVisible: true,
@@ -256,10 +256,14 @@ export default class App extends React.Component {
           moveToMyLocation={this._getLocationAsync}
           setTaggingModal={this._setTaggingModal}
         />
-        {/* <BottomSearch /> */}
+        <BottomSearch
+          visible={this.state.taggingVisible}
+          setTaggingModal={this._setTaggingModal}
+          setStateModal={this.setStateModal}
+        />
         <Timeline
           timelineVisible={this.state.timelineVisible}
-          closeModal={e => this._setTimelineModal(false)}
+          closeModal={e => this.setStateModal({ timelineVisible: false })}
           address={this.state.address}
           timeline={this.state.timeline}
           getTimelineArea={this._getTimelineArea}
@@ -267,12 +271,16 @@ export default class App extends React.Component {
           writeTagging={e => this._setTaggingModal(true)}
         />
         <Tagging
-          taggingVisible={this.state.taggingVisible}
+          visible={this.state.taggingVisible}
           closeModal={e => this._setTaggingModal(false)}
           address={this.state.address}
           coords={this.state.coords}
           getLocationAsync={this._getLocationAsync}
           tag={this.state.tag}
+        />
+        <Info
+          visible={this.state.infoVisible}
+          closeModal={e => this.setState({ infoVisible: false })}
         />
         <Loader
           style={styles.loader}
