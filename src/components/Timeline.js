@@ -1,21 +1,27 @@
 import React from "react";
 import {
   StyleSheet,
-  Modal,
   View,
   Text,
   TouchableOpacity,
   ScrollView
 } from "react-native";
+import { bindActionCreators } from "redux";
+import { connect } from "react-redux";
+import * as actions from "../store/actions";
 import { Ionicons } from "@expo/vector-icons";
-import gstyles from "./globalStyles";
-export default class extends React.Component {
+import gs from "../globalStyles";
+class Timeline extends React.Component {
   constructor(props) {
     super(props);
   }
-  _getTimelineArea = () =>
-    this.props.getTimelineArea(this.props.tag.properties.areas);
+  getTimelineArea = () => {};
+  closeModal = () => this.navigation.goBack();
   render() {
+    const nav = this.props.navigation;
+    const tag = nav.getParam("tag", {});
+    const timeline = nav.getParam("timeline", []);
+    const openTagging = nav.getParam("openTagging");
     const {
       country,
       state,
@@ -25,8 +31,7 @@ export default class extends React.Component {
       town,
       suburb,
       neighbourhood
-    } = this.props.tag.properties.areas || {};
-    const { timeline } = this.props;
+    } = tag.properties.areas || {};
     const minAddress = [
       country,
       state,
@@ -40,38 +45,31 @@ export default class extends React.Component {
       .reverse()
       .find(a => a && a.length > 0);
     return (
-      <Modal
-        animationType="slide"
-        presentationStyle="fullScreen"
-        visible={this.props.timelineVisible}
-        onRequestClose={this.props.closeModal}
-      >
+      <View style={[gs.flex1]}>
         <View style={styles.statusBar}>
-          <TouchableOpacity onPress={this.props.closeModal}>
+          <TouchableOpacity onPress={this.closeModal}>
             <Ionicons name="md-close" size={30} style={[styles.pad20]} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={this._getTimelineArea}>
-            <Text style={[gstyles.text.medium]}>{minAddress}</Text>
+          <TouchableOpacity onPress={this.getTimelineArea}>
+            <Text style={[gs.text.medium]}>{minAddress}</Text>
           </TouchableOpacity>
           <View style={[styles.pad20]}>
-            <Text style={[gstyles.text.smallMedium]}>
-              #{this.props.tag.properties.tag}
-            </Text>
+            <Text style={[gs.text.smallMedium]}>#{tag.properties.tag}</Text>
           </View>
         </View>
         <ScrollView style={[styles.pad20]}>
           {timeline.map((t, i) => (
             <View key={i} style={styles.feedContainer}>
-              <Text style={[gstyles.text.small]}>{t.content}</Text>
+              <Text style={[gs.text.small]}>{t.content}</Text>
             </View>
           ))}
         </ScrollView>
         <View style={[styles.back, styles.pad20]}>
-          <TouchableOpacity onPress={this.props.writeTagging}>
+          <TouchableOpacity onPress={openTagging}>
             <Text style={[styles.textCenter]}>Write Topics</Text>
           </TouchableOpacity>
         </View>
-      </Modal>
+      </View>
     );
   }
 }
@@ -92,3 +90,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   }
 });
+
+export default connect(
+  all => all,
+  dispatch => bindActionCreators(actions, dispatch)
+)(Timeline);

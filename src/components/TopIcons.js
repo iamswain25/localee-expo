@@ -24,7 +24,7 @@ export default class TopIcons extends React.Component {
     super(props);
   }
   _onPressNavigation = this.props.moveToMyLocation;
-  _onPressHash = () => this.props.setTaggingModal(true);
+  _onPressHash = () => this.props.openTagging();
   render() {
     return (
       <View style={styles.floatingTop}>

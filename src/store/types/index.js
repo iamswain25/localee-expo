@@ -1,0 +1,12 @@
+export const RESET_STORE = "RESET_STORE";
+
+export const SET_LOADING = "SET_LOADING";
+export const SET_TAGS = "SET_TAGS";
+export const SET_TIMELINE = "SET_TIMELINE";
+export const SET_ERROR = "SET_ERROR";
+
+export const MUTATE_AUTH = "MUTATE_AUTH";
+export const MUTATE_COORDS = "MUTATE_COORDS";
+export const MUTATE_TAG = "MUTATE_TAG";
+export const MUTATE_LOCATION_PERMISSION = "MUTATE_LOCATION_PERMISSION";
+export const MUTATE_ADDRESS = "MUTATE_ADDRESS";

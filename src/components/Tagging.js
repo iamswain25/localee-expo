@@ -1,29 +1,22 @@
 import React from "react";
-import {
-  StyleSheet,
-  Modal,
-  View,
-  TextInput,
-  Text,
-  TouchableOpacity
-} from "react-native";
+import { bindActionCreators } from "redux";
+import { connect } from "react-redux";
+import * as actions from "../store/actions";
+import { View, TextInput, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Constants, IntentLauncherAndroid as IntentLauncher } from "expo";
-import { fs, GeoPoint } from "./firebase";
-const styles = StyleSheet.create({
-  statusBar: {
-    backgroundColor: "white",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  }
-});
+import { Constants } from "expo";
+import { fs, GeoPoint } from "../firebase";
+import gs from "../globalStyles";
 
-export default class Tagging extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { text: "", address: "" };
+class Tagging extends React.Component {
+  state = { text: "", address: "" };
+  componentDidMount() {
+    console.log("tagging");
+    if (!this.props.me.locationPermission) {
+      this.props.getCoordsAddress();
+    }
   }
+  closeModal = () => this.props.navigation.goBack();
   _postTagging = async () => {
     console.log("tagging");
     const content = this.state.text;
@@ -31,18 +24,16 @@ export default class Tagging extends React.Component {
       return alert("no input");
     }
     // const tags = content.match(/#(\w+)/g);
-    const areas = this.props.address;
-    const coords = new GeoPoint(
-      this.props.coords.latitude,
-      this.props.coords.longitude
-    );
+    const areas = this.props.navigation.getParam("address");
+    const { latitude, longitude } = this.props.navigation.getParam("coords");
+    const coords = new GeoPoint(latitude, longitude);
     fs.addTopic({
       content,
       areas,
       coords,
       createdBy: Constants.installationId
     });
-    this.props.closeModal();
+    this.closeModal();
     this.setState({ text: "" });
   };
   render() {
@@ -55,7 +46,7 @@ export default class Tagging extends React.Component {
       town,
       suburb,
       neighbourhood
-    } = this.props.address || {};
+    } = this.props.navigation.getParam("address", {});
     const minAddress = [
       country,
       state,
@@ -69,14 +60,16 @@ export default class Tagging extends React.Component {
       .reverse()
       .find(a => a && a.length > 0);
     return (
-      <Modal
-        animationType="slide"
-        presentationStyle="fullScreen"
-        visible={this.props.visible}
-        onRequestClose={this.props.closeModal}
-      >
-        <View style={styles.statusBar}>
-          <TouchableOpacity onPress={this.props.closeModal}>
+      <View style={[gs.flex1]}>
+        <View
+          style={{
+            backgroundColor: "white",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}
+        >
+          <TouchableOpacity onPress={this.closeModal}>
             <Ionicons
               name="md-close"
               size={30}
@@ -105,7 +98,12 @@ export default class Tagging extends React.Component {
           maxLength={300}
           placeholder="What's happening in your zone?"
         />
-      </Modal>
+      </View>
     );
   }
 }
+
+export default connect(
+  all => all,
+  dispatch => bindActionCreators(actions, dispatch)
+)(Tagging);
